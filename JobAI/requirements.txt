@@ -1,0 +1,17 @@
+flask 
+pandas 
+numpy 
+sklearn 
+PyPDF2 
+python-docx
+Flask-Cors
+gradio
+langchain-community
+ollama
+faiss-cpu
+sentence-transformers
+transformers
+PyMuPDF
+python-docx
+unstructured
+pypdf

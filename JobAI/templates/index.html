@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Resume</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="upload-bg">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-file-alt me-2"></i>
+                Resume Analyzer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/upload">Upload</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="overlay"></div>
+    
+    <!-- Main Content -->
+    <main class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-8 mx-auto">
+                <div class="upload-content card bg-glass p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="display-5 text-light mb-3">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>
+                            Upload Your Resume
+                        </h2>
+                        <p class="text-light opacity-75">Supported formats: PDF, DOCX, DOC</p>
+                    </div>
+
+                    <form action="/predict" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <div class="upload-area" id="drop-area">
+                            <input type="file" name="file" id="fileInput" hidden required accept=".pdf,.docx,.doc">
+                            <div class="upload-content-inner">
+                                <i class="fas fa-file-upload mb-3 upload-icon"></i>
+                                <p class="upload-text">Drag & Drop your resume here or <strong>Click to Upload</strong></p>
+                                <p class="file-info mt-2 d-none">Selected file: <span id="fileName">No file chosen</span></p>
+                            </div>
+                            <div class="upload-progress d-none">
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <p class="mt-2 progress-text">Uploading: 0%</p>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn" disabled>
+                                <i class="fas fa-robot me-2"></i>
+                                Analyze Resume
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chatbot -->
+    <div class="chatbot-wrapper">
+        <button id="chatbot-toggle" class="chatbot-toggle-button">
+            <i class="fas fa-comments"></i>
+        </button>
+        
+        <div id="chatbot-container" class="chatbot-container">
+            <div class="chatbot-header">
+                <div class="chatbot-title">
+                    <i class="fas fa-robot me-2"></i>
+                    Resume Assistant
+                </div>
+                <button id="close-chatbot" class="close-chatbot-button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="chatbox" class="chatbox">
+                <div class="welcome-message">
+                    <p>👋 Need help with your resume upload? Just ask!</p>
+                </div>
+            </div>
+            
+            <div class="chatbot-input-area">
+                <input type="text" id="userInput" class="user-input" placeholder="Type your message...">
+                <button onclick="sendMessage()" class="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const fileInfo = document.querySelector('.file-info');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const uploadForm = document.getElementById('uploadForm');
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.querySelector('.progress-text');
+            const uploadProgress = document.querySelector('.upload-progress');
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop zone when file is dragged over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            // Handle dropped files
+            dropArea.addEventListener('drop', handleDrop, false);
+
+            // Handle clicked files
+            dropArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFiles);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight(e) {
+                dropArea.classList.add('highlight');
+            }
+
+            function unhighlight(e) {
+                dropArea.classList.remove('highlight');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles({ target: { files: files } });
+            }
+
+            function handleFiles(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const validTypes = ['.pdf', '.docx', '.doc'];
+                    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                    
+                    if (validTypes.includes(fileExtension)) {
+                        fileName.textContent = file.name;
+                        fileInfo.classList.remove('d-none');
+                        analyzeBtn.disabled = false;
+                        dropArea.classList.add('has-file');
+                        simulateProgress();
+                    } else {
+                        alert('Please upload a valid resume file (PDF, DOCX, or DOC)');
+                        resetUpload();
+                    }
+                }
+            }
+
+            function resetUpload() {
+                fileInput.value = '';
+                fileName.textContent = 'No file chosen';
+                fileInfo.classList.add('d-none');
+                analyzeBtn.disabled = true;
+                dropArea.classList.remove('has-file');
+                uploadProgress.classList.add('d-none');
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Uploading: 0%';
+            }
+
+            function simulateProgress() {
+                uploadProgress.classList.remove('d-none');
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    if (progress <= 90) {
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `Uploading: ${progress}%`;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 100);
+            }
+
+            uploadForm.addEventListener('submit', function(e) {
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Upload Complete!';
+            });
+        });
+    </script>
+    <style>
+        /* Global Variables */
+:root {
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+    --secondary-color: #3b82f6;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --text-light: #f3f4f6;
+    --text-dark: #1f2937;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --upload-area-height: 300px;
+}
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Background Styles */
+.home-bg, .upload-bg {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    background-attachment: fixed;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="rgba(255,255,255,0.05)" width="100" height="100"/></svg>') repeat;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Navigation Styles */
+.navbar {
+    padding: 1rem 0;
+    position: relative;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--text-light) !important;
+}
+
+.nav-link {
+    color: var(--text-light) !important;
+    opacity: 0.8;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover, .nav-link.active {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+/* Card Styles */
+.bg-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+/* Upload Area Styles */
+.upload-area {
+    height: var(--upload-area-height);
+    border: 2px dashed var(--glass-border);
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.upload-area:hover {
+    border-color: var(--text-light);
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+}
+
+.upload-area.highlight {
+    border-color: var(--success-color);
+    background: rgba(16, 185, 129, 0.1);
+    transform: scale(1.02);
+}
+
+.upload-area.has-file {
+    border-color: var(--success-color);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.upload-content-inner {
+    text-align: center;
+    color: var(--text-light);
+    transition: all 0.3s ease;
+}
+
+.upload-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: var(--text-light);
+    opacity: 0.8;
+}
+
+.upload-text {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.file-info {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    opacity: 0.8;
+}
+
+/* Progress Bar Styles */
+.upload-progress {
+    width: 100%;
+    padding: 1rem;
+}
+
+.progress {
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: var(--success-color);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+/* Button Styles */
+.btn {
+    padding: 0.8rem 2rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Chatbot Styles */
+.chatbot-wrapper {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+}
+
+.chatbot-toggle-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.chatbot-toggle-button:hover {
+    transform: scale(1.1);
+    background: var(--primary-hover);
+}
+
+.chatbot-container {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 350px;
+    height: 500px;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.chatbot-container.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.chatbot-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chatbot-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.close-chatbot-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.close-chatbot-button:hover {
+    transform: rotate(90deg);
+}
+
+.chatbox {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    background: #f8fafc;
+}
+
+.welcome-message {
+    background: var(--glass-bg);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Message Styles */
+.message {
+    margin-bottom: 1rem;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.user-message {
+    margin-left: auto;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 1rem 1rem 0 1rem;
+    padding: 0.8rem 1rem;
+}
+
+.bot-message {
+    margin-right: auto;
+    background: #e2e8f0;
+    color: var(--text-dark);
+    border-radius: 1rem 1rem 1rem 0;
+    padding: 0.8rem 1rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+/* Input Area Styles */
+.chatbot-input-area {
+    padding: 1rem;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.user-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.user-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.send-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.send-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .upload-area {
+        height: auto;
+        min-height: 200px;
+    }
+
+    .chatbot-container {
+        width: calc(100vw - 2rem);
+        height: 60vh;
+        right: -1rem;
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+    }
+
+    .upload-text {
+        font-size: 1rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+
+    .upload-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .upload-area {
+        padding: 1rem;
+    }
+
+    .chatbot-toggle-button {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+}
+    </style>
+</body>
+</html>

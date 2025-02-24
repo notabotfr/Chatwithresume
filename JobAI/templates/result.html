@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analysis Result</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="upload-bg">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-file-alt me-2"></i>
+                Resume Analyzer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">Upload</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="overlay"></div>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-8 mx-auto">
+                <div class="result-content card bg-glass p-5">
+                    <div class="text-center mb-4">
+                        <div class="result-icon mb-3">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h2 class="display-6 text-light mb-3">Analysis Complete!</h2>
+                        <p class="text-light opacity-75">Here's what we found in your resume</p>
+                    </div>
+
+                    <div class="result-box mb-4">
+                        <div class="category-label text-light opacity-75 mb-2">
+                            Predicted Job Category
+                        </div>
+                        <div class="category-result">
+                            <i class="fas fa-briefcase me-2"></i>
+                            {{ category }}
+                        </div>
+                        <div class="result-details mt-3">
+                            <div class="confidence-meter">
+                                <div class="confidence-bar" style="width: 85%"></div>
+                            </div>
+                            <span class="confidence-text">85% Confidence</span>
+                        </div>
+                    </div>
+
+                    <div class="quick-tips bg-glass-secondary p-3 mb-4">
+                        <h5 class="text-light mb-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Quick Tips
+                        </h5>
+                        <ul class="tips-list text-light opacity-75">
+                            <li>Consider adding more specific skills related to {{ category }}</li>
+                            <li>Highlight relevant work experience for this field</li>
+                            <li>Include certifications specific to this domain</li>
+                        </ul>
+                    </div>
+
+                    <div class="action-buttons d-grid gap-3 d-sm-flex justify-content-sm-center mt-4">
+                        <a href="/upload" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-upload me-2"></i>
+                            Analyze Another Resume
+                        </a>
+                        <a href="/" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-home me-2"></i>
+                            Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chatbot -->
+    <div class="chatbot-wrapper">
+        <button id="chatbot-toggle" class="chatbot-toggle-button">
+            <i class="fas fa-comments"></i>
+        </button>
+
+        <div id="chatbot-container" class="chatbot-container">
+            <div class="chatbot-header">
+                <div class="chatbot-title">
+                    <i class="fas fa-robot me-2"></i>
+                    Career Assistant
+                </div>
+                <button id="close-chatbot" class="close-chatbot-button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div id="chatbox" class="chatbox">
+                <div class="welcome-message">
+                    <p>👋 Have questions about your results? I'm here to help!</p>
+                </div>
+            </div>
+
+            <div class="chatbot-input-area">
+                <input type="text" id="userInput" class="user-input" placeholder="Ask about your results...">
+                <button onclick="sendMessage()" class="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+</body>
+<style>
+    /* Define color variables for easier customization */
+    :root {
+        --primary-color: #6a5acd; /* Example primary color - adjust as needed */
+        --success-color: #28a745;
+        --text-light:  #07b5f9;
+        --text-dark: #0c5bf9; /* Slightly lighter dark text */
+        --glass-border: rgba(255, 255, 255, 0.15);
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif !important; /* Ensure Poppins is applied */
+        color: var(--text-light) !important; /* Default text color for body */
+    }
+
+    h2, h5 {
+        font-weight: 600 !important; /* Stronger font weight for headings */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2); /* Subtle text shadow for headings */
+    }
+
+    p, li, span, div { /* Apply to most text elements */
+        color: var(--text-dark) !important; /* Use the lighter dark text color */
+        line-height: 1.6; /* Improved line height for readability */
+        letter-spacing: 0.5px; /* Slight letter spacing for better look */
+    }
+
+    .navbar-brand, .nav-link {
+        color: var(--text-light) !important; /* Ensure navbar text is light */
+        font-weight: 500;
+    }
+
+    .navbar-brand {
+        font-size: 1.5rem;
+    }
+
+    .nav-link {
+        font-size: 1.1rem;
+    }
+
+
+    /* Result Page Specific Styles */
+    .result-icon {
+        font-size: 4rem;
+        color: var(--success-color);
+        animation: scaleIn 0.5s ease-out;
+    }
+
+    .result-box {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+    }
+
+    .category-label {
+        color: var(--text-dark) !important; /* Lighter color for labels */
+        opacity: 0.8; /* Slightly less opaque */
+        font-weight: 500;
+    }
+
+    .category-result {
+        font-size: 2rem;
+        font-weight: 700; /* Stronger weight for result */
+        color: var(--text-light) !important;
+        margin: 1rem 0;
+        animation: fadeInUp 0.5s ease-out;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* More prominent shadow for result */
+    }
+
+    .confidence-meter {
+        background: rgba(255, 255, 255, 0.1);
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .confidence-bar {
+        height: 100%;
+        background: var(--success-color);
+        border-radius: 4px;
+        animation: slideRight 1s ease-out;
+    }
+
+    .confidence-text {
+        color: var(--text-dark) !important; /* Ensure confidence text is styled */
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .bg-glass-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+        border: 1px solid var(--glass-border);
+    }
+
+    .quick-tips {
+        background: rgba(255, 255, 255, 0.08); /* Slightly more opaque for tips box */
+    }
+
+    .tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tips-list li {
+        margin-bottom: 0.5rem;
+        padding-left: 1.5rem;
+        position: relative;
+    }
+
+    .tips-list li::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--success-color);
+    }
+
+    .action-buttons .btn-outline-light {
+        border: 2px solid var(--text-dark);
+        color: var(--text-light) !important; /* Ensure button text is light */
+    }
+
+    .action-buttons .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+
+    /* Primary button color adjustment */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    .btn-primary:hover {
+        background-color: darken(var(--primary-color), 10%); /* Example of darkening on hover - adjust as needed */
+        border-color: darken(var(--primary-color), 10%);
+    }
+
+
+    /* Additional Animations */
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideRight {
+        from {
+            width: 0;
+        }
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .category-result {
+            font-size: 1.5rem;
+        }
+
+        .result-icon {
+            font-size: 3rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .result-box {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .result-content {
+            padding: 1.5rem !important;
+        }
+
+        .category-result {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+</html>

@@ -22,6 +22,9 @@
 
 1. **Clone the repository** and check paths.
 2. **Install Ollama** from [ollama.com](https://ollama.com).
-3. After successful installation, type this in your CMD:
+3. **Check status** paste http://localhost:11434/api/generate in your browser to check if ollama is running.
+4. After successful installation, type this in your CMD:
    ```bash
    ollama run <model_name>
+  <p align="center"> Make sure to change your model name in the chatbot.js file! (I have used qwen2.5) </p> ```
+
